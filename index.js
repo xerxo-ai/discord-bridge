@@ -22,12 +22,11 @@ console.log(`Webhook URL: ${WEBHOOK_URL}`);
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages,
   ],
-  partials: [Partials.Channel, Partials.Message],
+  rest: { timeout: 30000 },
 });
+
+console.log('Client created with minimal intents (Guilds only)');
 
 // Track messages sent by us to avoid infinite loops
 const sentMessages = new Set();
