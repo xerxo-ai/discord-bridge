@@ -119,42 +119,46 @@ app.listen(PORT, () => {
 console.log(`Attempting Discord login with token: ${BOT_TOKEN.substring(0, 10)}...${BOT_TOKEN.substring(BOT_TOKEN.length - 5)}`);
 console.log(`Token length: ${BOT_TOKEN.length}`);
 
-// Catch any unhandled errors from the client
-client.on('error', (err) => {
-  console.error(`Discord client error: ${err.message}`);
-});
-
-client.on('warn', (msg) => {
-  console.warn(`Discord warning: ${msg}`);
-});
-
-client.on('debug', (msg) => {
-  // Only log important debug messages
-  if (msg.includes('Heartbeat') || msg.includes('Session') || msg.includes('Gateway') || msg.includes('token') || msg.includes('Intent') || msg.includes('connect') || msg.includes('error') || msg.includes('close')) {
-    console.log(`[DEBUG] ${msg}`);
+// Test HTTP connection to Discord API first
+(async () => {
+  try {
+    console.log('Testing Discord REST API connection...');
+    const testResp = await fetch('https://discord.com/api/v10/gateway', {
+      headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+    });
+    const testData = await testResp.json();
+    console.log(`Discord REST API response (${testResp.status}):`, JSON.stringify(testData));
+    
+    if (testResp.status === 401) {
+      console.error('TOKEN IS INVALID. Reset it in Discord Developer Portal.');
+      process.exit(1);
+    }
+    
+    // Also test /users/@me to verify the bot
+    const meResp = await fetch('https://discord.com/api/v10/users/@me', {
+      headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+    });
+    const meData = await meResp.json();
+    console.log(`Bot identity (${meResp.status}): ${meData.username}#${meData.discriminator} (ID: ${meData.id})`);
+  } catch (err) {
+    console.error(`Discord REST API test FAILED: ${err.message}`);
+    console.error('This means Render cannot reach Discord servers at all.');
   }
-});
 
-// Set a timeout — if login takes more than 30s, something is wrong
-const loginTimeout = setTimeout(() => {
-  console.error('ERROR: Discord login timed out after 30 seconds. Check:');
-  console.error('  1. Is DISCORD_BOT_TOKEN valid? Try resetting it in Discord Developer Portal');
-  console.error('  2. Are Privileged Gateway Intents enabled? (Message Content Intent)');
-  console.error('  3. Is the bot application not deleted/disabled?');
-}, 30000);
-
-client.login(BOT_TOKEN)
-  .then(() => {
-    clearTimeout(loginTimeout);
-    console.log('Discord login promise resolved successfully');
-  })
-  .catch((err) => {
-    clearTimeout(loginTimeout);
-    console.error(`Discord login failed: ${err.message}`);
-    console.error(`Error code: ${err.code}`);
-    console.error(`Full error:`, err);
-    process.exit(1);
-  });
+  // Now try gateway login
+  console.log('Now attempting Gateway login...');
+  client.login(BOT_TOKEN.trim())
+    .then(() => {
+      clearTimeout(loginTimeout);
+      console.log('Discord login promise resolved successfully');
+    })
+    .catch((err) => {
+      clearTimeout(loginTimeout);
+      console.error(`Discord login failed: ${err.message}`);
+      console.error(`Error code: ${err.code}`);
+      process.exit(1);
+    });
+})();
 
 // Graceful shutdown
 process.on('SIGINT', () => {
