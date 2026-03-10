@@ -117,10 +117,19 @@ app.listen(PORT, () => {
   console.log(`Health check server on port ${PORT}`);
 });
 
-client.login(BOT_TOKEN).catch((err) => {
-  console.error(`Discord login failed: ${err.message}`);
-  process.exit(1);
-});
+console.log(`Attempting Discord login with token: ${BOT_TOKEN.substring(0, 10)}...${BOT_TOKEN.substring(BOT_TOKEN.length - 5)}`);
+console.log(`Token length: ${BOT_TOKEN.length}`);
+
+client.login(BOT_TOKEN)
+  .then(() => {
+    console.log('Discord login promise resolved successfully');
+  })
+  .catch((err) => {
+    console.error(`Discord login failed: ${err.message}`);
+    console.error(`Error code: ${err.code}`);
+    console.error(`Full error:`, err);
+    process.exit(1);
+  });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
